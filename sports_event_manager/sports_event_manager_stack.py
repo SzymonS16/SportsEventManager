@@ -1,7 +1,9 @@
 from aws_cdk import (core,
                     aws_apigateway as apigateway,
                     aws_lambda as _lambda,
-                    aws_dynamodb as dynamodb
+                    aws_dynamodb as dynamodb,
+                    aws_s3 as s3,
+                    aws_iam as iam
                     
 )
 
@@ -11,14 +13,18 @@ class SportsEventManagerStack(core.Stack):
         super().__init__(scope, id, **kwargs)
 
         # The code that defines your stack goes here
-
+        ###Bucket###
+        bucket = s3.Bucket(self, "Bucket",
+        )
+        
          ###Tables###
         table_players = dynamodb.Table(self, "Players",
             partition_key=dynamodb.Attribute(name="id", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST
         )
 
-        env_players = {
+        env_ = {
+            "BUCKET" : bucket.bucket_name,
             "TABLE_PLAYERS" : table_players.table_name
         }
 
@@ -28,22 +34,28 @@ class SportsEventManagerStack(core.Stack):
             runtime=_lambda.Runtime.PYTHON_3_7,
             code=_lambda.Code.asset('lambda'),
             handler='playersDBhandler.get_players',
-            environment=env_players)
+            environment=env_)
         table_players.grant_read_write_data(get_players)
 
         get_player = _lambda.Function(self,'get_player',
             runtime=_lambda.Runtime.PYTHON_3_7,
             code=_lambda.Code.asset('lambda'),
             handler='playersDBhandler.get_player',
-            environment=env_players)
+            environment=env_)
         table_players.grant_read_write_data(get_player)
+        bucket.grant_read(get_player)
 
         add_player = _lambda.Function(self,'add_player',
             runtime=_lambda.Runtime.PYTHON_3_7,
             code=_lambda.Code.asset('lambda'),
             handler='playersDBhandler.add_player',
-            environment=env_players)
+            environment=env_)
         table_players.grant_read_write_data(add_player)
+        bucket.grant_read_write(add_player)
+        add_player.add_to_role_policy(iam.PolicyStatement(
+            resources=['*'],
+            actions=["rekognition:DetectFaces"]
+        ))
 
         update_player = _lambda.Function(self,'update_player',
             runtime=_lambda.Runtime.PYTHON_3_7,
@@ -54,6 +66,7 @@ class SportsEventManagerStack(core.Stack):
             runtime=_lambda.Runtime.PYTHON_3_7,
             code=_lambda.Code.asset('lambda'),
             handler='playersDBhandler.delete_player')
+        table_players.grant_read_write_data(delete_player)
 
         #teams
 
