@@ -19,7 +19,7 @@ setuptools.setup(
     packages=setuptools.find_packages(where="sports_event_manager"),
 
     install_requires=[
-        "aws-cdk.core==1.44.0",
+        "aws-cdk.core>=1.44.0",
     ],
 
     python_requires=">=3.6",
