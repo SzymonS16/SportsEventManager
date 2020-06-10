@@ -3,8 +3,9 @@ from aws_cdk import (core,
                     aws_lambda as _lambda,
                     aws_dynamodb as dynamodb,
                     aws_s3 as s3,
-                    aws_iam as iam
-                    
+                    aws_iam as iam,
+                    aws_lambda_event_sources as lamda_event_sources,
+                    aws_sqs as sqs                   
 )
 
 class SportsEventManagerStack(core.Stack):
@@ -42,6 +43,11 @@ class SportsEventManagerStack(core.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST
         )
 
+        ###Queue###
+        queue_facilities = sqs.Queue(self, "QueueFacilities", 
+        visibility_timeout = core.Duration.minutes(3)
+        )
+
         ###Enviroment###
         env_ = {
             "BUCKET" : bucket.bucket_name,
@@ -49,7 +55,9 @@ class SportsEventManagerStack(core.Stack):
             "TABLE_TEAMS" : table_teams.table_name,
             "TABLE_SPORT_FACILITIES" : table_sport_facilities.table_name, 
             "TABLE_EVENTS" : table_events.table_name, 
-            "TABLE_RESERVATIONS" : table_reservations.table_name 
+            "TABLE_RESERVATIONS" : table_reservations.table_name,
+            "QUEUE_FACILITIES_URL" : queue_facilities.queue_url,
+            "QUEUE_FACILITIES" : queue_facilities.queue_name
         }
 
         ###Lambdas###
@@ -129,6 +137,52 @@ class SportsEventManagerStack(core.Stack):
             handler='teamsDBhandler.delete_team')
         table_teams.grant_read_write_data(delete_team)
 
+        #sport_facilities
+        get_sport_facilities = _lambda.Function(self,'get_sport_facilities',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='sportFacilitiesDBhandler.get_sport_facilities',
+            environment=env_)
+        table_sport_facilities.grant_read_write_data(get_sport_facilities)
+
+        get_sport_facility = _lambda.Function(self,'get_sport_facility',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='sportFacilitiesDBhandler.get_sport_facility',
+            environment=env_)
+        table_sport_facilities.grant_read_write_data(get_sport_facility)
+        bucket.grant_read(get_sport_facility)
+
+        add_sport_facility = _lambda.Function(self,'add_sport_facility',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='sportFacilitiesDBhandler.add_sport_facility',
+            environment=env_)
+        table_sport_facilities.grant_read_write_data(add_sport_facility)
+        bucket.grant_read_write(add_sport_facility)
+        queue_facilities.grant_send_messages(add_sport_facility)
+
+        process_new_sport_facility = _lambda.Function(self,'process_new_sport_facility',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='sportFacilitiesDBhandler.process_new_sport_facility',
+            environment=env_)
+        table_sport_facilities.grant_read_write_data(process_new_sport_facility)
+        bucket.grant_read_write(process_new_sport_facility)
+        #queue handler
+        process_new_sport_facility.add_event_source(lamda_event_sources.SqsEventSource(queue_facilities,batch_size=1))
+
+        update_sport_facility = _lambda.Function(self,'update_sport_facility',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='sportFacilitiesDBhandler.update_sport_facility')
+        table_sport_facilities.grant_read_write_data(update_sport_facility)
+
+        delete_sport_facility = _lambda.Function(self,'delete_sport_facility',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='sportFacilitiesDBhandler.delete_sport_facility')
+        table_sport_facilities.grant_read_write_data(delete_sport_facility)
 
         ###API###
         api = apigateway.RestApi(self, "SportsEventManagerApi")
@@ -162,6 +216,22 @@ class SportsEventManagerStack(core.Stack):
             authorization_type=apigateway.AuthorizationType.NONE)
         team.add_method("DELETE", apigateway.LambdaIntegration(delete_team),
             authorization_type=apigateway.AuthorizationType.NONE)
+
+        # /facilities
+        facilities = api.root.add_resource("facilities")
+        facilities.add_method("GET", apigateway.LambdaIntegration(get_sport_facilities), 
+            authorization_type=apigateway.AuthorizationType.NONE)
+        facilities.add_method("POST", apigateway.LambdaIntegration(add_sport_facility),
+            authorization_type=apigateway.AuthorizationType.NONE)
+        
+        facility = teams.add_resource("{facility_id}")
+        facility.add_method("GET", apigateway.LambdaIntegration(get_sport_facility),
+            authorization_type=apigateway.AuthorizationType.NONE)
+        facility.add_method("PUT", apigateway.LambdaIntegration(update_sport_facility),
+            authorization_type=apigateway.AuthorizationType.NONE)
+        facility.add_method("DELETE", apigateway.LambdaIntegration(delete_sport_facility),
+            authorization_type=apigateway.AuthorizationType.NONE)
+
        
 
 
