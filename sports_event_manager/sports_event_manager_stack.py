@@ -224,7 +224,7 @@ class SportsEventManagerStack(core.Stack):
         facilities.add_method("POST", apigateway.LambdaIntegration(add_sport_facility),
             authorization_type=apigateway.AuthorizationType.NONE)
         
-        facility = teams.add_resource("{facility_id}")
+        facility = facilities.add_resource("{facility_id}")
         facility.add_method("GET", apigateway.LambdaIntegration(get_sport_facility),
             authorization_type=apigateway.AuthorizationType.NONE)
         facility.add_method("PUT", apigateway.LambdaIntegration(update_sport_facility),
@@ -233,6 +233,3 @@ class SportsEventManagerStack(core.Stack):
             authorization_type=apigateway.AuthorizationType.NONE)
 
        
-
-
-
