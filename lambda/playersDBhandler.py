@@ -16,10 +16,10 @@ def get_players(event, context):
     method = event['httpMethod']        
     if (method == 'GET'):
         items = table.scan()["Items"]
-    return {
-        "body": json.dumps(items, indent=2, sort_keys=True),
-        "statusCode": 200
-    }
+        return {
+            "body": json.dumps(items, indent=2, sort_keys=True),
+            "statusCode": 200
+        }
 
 def get_player(event, context):
     method = event['httpMethod']        
