@@ -6,7 +6,7 @@ import base64
 
 dynamodb = boto3.resource('dynamodb')
 sqs = boto3.resource('sqs')
-#s3client = boto3.client("s3")
+s3client = boto3.client("s3")
 
 table = dynamodb.Table(os.getenv("TABLE_SPORT_FACILITIES"))
 queue = sqs.Queue(os.getenv("QUEUE_FACILITIES_URL"))
@@ -47,7 +47,7 @@ def add_sport_facility(event, context):
                 'type' : body['type']
             }
         
-        response = sqs.send_message(MessageBody=item)
+        response = queue.send_message(MessageBody=json.dumps(item))
 
         return {
             'statusCode': 200,
@@ -60,6 +60,7 @@ def add_sport_facility(event, context):
 def process_new_sport_facility(event, context):
     if event:
         output = json.dumps(event, indent=2, sort_keys=True)
+        print(output)
         return {
             'statusCode': 200,
             'headers': {

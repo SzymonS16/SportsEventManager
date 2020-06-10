@@ -4,8 +4,8 @@ from aws_cdk import (core,
                     aws_dynamodb as dynamodb,
                     aws_s3 as s3,
                     aws_iam as iam,
-                    aws_lambda_event_sources as lamda_event_sources,
-                    aws_sqs as sqs                   
+                    aws_lambda_event_sources as lambda_event_sources,
+                    aws_sqs as sqs               
 )
 
 class SportsEventManagerStack(core.Stack):
@@ -169,8 +169,7 @@ class SportsEventManagerStack(core.Stack):
             environment=env_)
         table_sport_facilities.grant_read_write_data(process_new_sport_facility)
         bucket.grant_read_write(process_new_sport_facility)
-        #queue handler
-        process_new_sport_facility.add_event_source(lamda_event_sources.SqsEventSource(queue_facilities,batch_size=1))
+        process_new_sport_facility.add_event_source(lambda_event_sources.SqsEventSource(queue_facilities,batch_size=1))
 
         update_sport_facility = _lambda.Function(self,'update_sport_facility',
             runtime=_lambda.Runtime.PYTHON_3_7,
