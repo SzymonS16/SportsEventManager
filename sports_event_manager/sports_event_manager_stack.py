@@ -208,6 +208,13 @@ class SportsEventManagerStack(core.Stack):
         bucket.grant_read_write(add_reservation)
         table_players.grant_read_data(add_reservation)
         table_sport_facilities.grant_read_data(add_reservation)
+        add_reservation.add_to_role_policy(iam.PolicyStatement(
+            resources=['*'],
+            actions=["ses:VerifyEmailIdentity",
+                    "ses:SendEmail",
+                    "ses:SendRawEmail"
+                    ]
+        ))
         
         update_reservation = _lambda.Function(self,'update_reservation',
             runtime=_lambda.Runtime.PYTHON_3_7,
