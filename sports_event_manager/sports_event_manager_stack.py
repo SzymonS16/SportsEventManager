@@ -183,6 +183,44 @@ class SportsEventManagerStack(core.Stack):
             handler='sportFacilitiesDBhandler.delete_sport_facility')
         table_sport_facilities.grant_read_write_data(delete_sport_facility)
 
+        #reservations
+        get_reservations = _lambda.Function(self,'get_reservations',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='reservation_handler.get_reservations',
+            environment=env_)
+        table_reservations.grant_read_write_data(get_reservations)
+
+        get_reservation = _lambda.Function(self,'get_reservation',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='reservation_handler.get_reservation',
+            environment=env_)
+        table_reservations.grant_read_write_data(get_reservation)
+        bucket.grant_read(get_reservation)
+
+        add_reservation = _lambda.Function(self,'add_reservation',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='reservation_handler.add_reservation',
+            environment=env_)
+        table_reservations.grant_read_write_data(add_reservation)
+        bucket.grant_read_write(add_reservation)
+        table_players.grant_read_data(add_reservation)
+        table_sport_facilities.grant_read_data(add_reservation)
+        
+        update_reservation = _lambda.Function(self,'update_reservation',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='reservation_handler.update_reservation')
+        table_reservations.grant_read_write_data(update_reservation)
+
+        delete_reservation = _lambda.Function(self,'delete_reservation',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='reservation_handler.delete_reservation')
+        table_reservations.grant_read_write_data(delete_reservation)
+
         ###API###
         api = apigateway.RestApi(self, "SportsEventManagerApi")
 
@@ -229,6 +267,21 @@ class SportsEventManagerStack(core.Stack):
         facility.add_method("PUT", apigateway.LambdaIntegration(update_sport_facility),
             authorization_type=apigateway.AuthorizationType.NONE)
         facility.add_method("DELETE", apigateway.LambdaIntegration(delete_sport_facility),
+            authorization_type=apigateway.AuthorizationType.NONE)
+
+        # /reservations
+        reservations = api.root.add_resource("reservations")
+        reservations.add_method("GET", apigateway.LambdaIntegration(get_reservations), 
+            authorization_type=apigateway.AuthorizationType.NONE)
+        reservations.add_method("POST", apigateway.LambdaIntegration(add_reservation),
+            authorization_type=apigateway.AuthorizationType.NONE)
+        
+        reservation = reservations.add_resource("{reservation_id}")
+        reservation.add_method("GET", apigateway.LambdaIntegration(get_reservation),
+            authorization_type=apigateway.AuthorizationType.NONE)
+        reservation.add_method("PUT", apigateway.LambdaIntegration(update_reservation),
+            authorization_type=apigateway.AuthorizationType.NONE)
+        reservation.add_method("DELETE", apigateway.LambdaIntegration(delete_reservation),
             authorization_type=apigateway.AuthorizationType.NONE)
 
        
