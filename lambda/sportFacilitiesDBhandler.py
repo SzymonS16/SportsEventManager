@@ -60,13 +60,21 @@ def add_sport_facility(event, context):
 def process_new_sport_facility(event, context):
     if event:
         output = json.dumps(event, indent=2, sort_keys=True)
-        print(output)
+        body = json.loads(event['Records'][0]['body'])
+        item = {
+                'id' : body['id'],
+                'name': body['name'],
+                'type': body['type']
+            }
+        table.put_item(
+            Item=item
+        )
         return {
             'statusCode': 200,
             'headers': {
             'Content-Type': 'text/plain'
                 },
-                'body': 'Taken from queue: {}'.format(output)
+                'body': 'Item added: {}'.format(item)
         }
     else:
         return {
