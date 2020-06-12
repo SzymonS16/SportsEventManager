@@ -16,8 +16,9 @@ table_players = dynamodb.Table(os.getenv("TABLE_PLAYERS"))
 table_facilities = dynamodb.Table(os.getenv("TABLE_SPORT_FACILITIES"))
 bucket = os.getenv("BUCKET")
 
+
 def get_reservations(event, context):
-    method = event['httpMethod']        
+    method = event['httpMethod']
     if (method == 'GET'):
         items = table.scan()["Items"]
         return {
@@ -25,104 +26,90 @@ def get_reservations(event, context):
             "statusCode": 200
         }
 
+
 def get_reservation(event, context):
-    method = event['httpMethod']        
+    method = event['httpMethod']
     if (method == 'GET'):
         id = event['pathParameters']['reservation_id']
-        item = table.get_item(
-            Key ={
-                "id" : id
-            }
-        )
+        item = table.get_item(Key={"id": id})
         item = item['Item']
         return {
-        "body": json.dumps(item, indent=2, sort_keys=True),
-        "statusCode": 200
+            "body": json.dumps(item, indent=2, sort_keys=True),
+            "statusCode": 200
         }
 
+
 def add_reservation(event, context):
-    method = event['httpMethod']
-    if (method == 'POST'):
-        id = str(uuid.uuid4())
-        body = json.loads(event['body'])
-        
-        player = table_players.get_item(
-            Key ={
-                "id" : body['player_id']
-            }
-        )
+    #TODO#
+    #body handler from add_event function
 
-        facility = table_facilities.get_item(
-            Key ={
-                "id" : body['facility_id']
-            }
-        )
+    id = str(uuid.uuid4())
+    print(json.dumps(event))
+    body = json.loads(event['body'])
 
-        item = {
-                'id' : id,
-                'date': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'player' : player['Item'],
-                'sport_facility' : facility['Item'],
-                'start_date' : body['start_date'],
-                'end_date' : body['end_date']
-            }
-        table.put_item(
-            Item=item
-        )
+    player = table_players.get_item(Key={"id": body['player_id']})
 
-        # if player['Item']['e-mail']:
-        #     receipient = player['Item']['e-mail']
-        #     send_email_notifiaction(receipient)
+    facility = table_facilities.get_item(Key={"id": body['facility_id']})
 
-        return {
-            'statusCode': 200,
-            'headers': {
+    item = {
+        'id': id,
+        'date': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'player': player['Item'],
+        'sport_facility': facility['Item'],
+        'start_date': body['start_date'],
+        'end_date': body['end_date']
+    }
+    table.put_item(Item=item)
+
+    # if player['Item']['e-mail']:
+    #     receipient = player['Item']['e-mail']
+    #     send_email_notifiaction(receipient)
+
+    return {
+        'statusCode':
+        200,
+        'headers': {
             'Content-Type': 'text/plain'
-                },
-                'body': 'Item created: {}'.format(json.dumps(item, indent=2, sort_keys=True))
-            }
+        },
+        'body':
+        'Item created: {}'.format(json.dumps(item, indent=2, sort_keys=True))
+    }
+
 
 #def update_reservation:
-    #TO-DO
+#TO-DO
 
 def delete_reservation(event, context):
     method = event['httpMethod']
     if (method == 'DELETE'):
         id = event['pathParameters']['reservation_id']
-        table.delete_item(
-            Key={
-                "id" : id
-            }
-        )
+        table.delete_item(Key={"id": id})
         return {
             'statusCode': 200,
             'headers': {
-            'Content-Type': 'text/plain'
-                },
-                'body': 'Item deleted: {}'.format(str(id))
-            }
+                'Content-Type': 'text/plain'
+            },
+            'body': 'Item deleted: {}'.format(str(id))
+        }
+
 
 def send_email_notifiaction(receipient):
     # Replace sender@example.com with your "From" address.
     # This address must be verified with Amazon SES.
     SENDER = 'sender@example.com'
-    response = ses.verify_email_identity(
-        EmailAddress = SENDER
-    )
+    response = ses.verify_email_identity(EmailAddress=SENDER)
 
-    # Replace recipient@example.com with a "To" address. If your account 
+    # Replace recipient@example.com with a "To" address. If your account
     # is still in the sandbox, this address must be verified.
     RECIPIENT = receipient
-    response = ses.verify_email_identity(
-        EmailAddress = RECIPIENT
-    )
- 
+    response = ses.verify_email_identity(EmailAddress=RECIPIENT)
+
     # The subject line for the email.
     SUBJECT = "Reservation - confirm notification"
 
     # The email body for recipients with non-HTML email clients.
     BODY_TEXT = ("Test notification")
-                
+
     # The HTML body of the email.
     BODY_HTML = """<html>
     <head></head>
@@ -131,7 +118,7 @@ def send_email_notifiaction(receipient):
     <p>Test reservation confirmation</p>
     </body>
     </html>
-                """            
+                """
     # The character encoding for the email.
     CHARSET = "UTF-8"
 
@@ -168,4 +155,4 @@ def send_email_notifiaction(receipient):
     else:
         print("Email sent! Message ID:"),
         print(response['MessageId'])
-
+        

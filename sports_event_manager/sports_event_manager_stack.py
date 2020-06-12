@@ -5,7 +5,9 @@ from aws_cdk import (core,
                     aws_s3 as s3,
                     aws_iam as iam,
                     aws_lambda_event_sources as lambda_event_sources,
-                    aws_sqs as sqs               
+                    aws_sqs as sqs,
+                    aws_sns as sns,
+                    aws_sns_subscriptions as sns_subscriptions        
 )
 
 class SportsEventManagerStack(core.Stack):
@@ -228,6 +230,42 @@ class SportsEventManagerStack(core.Stack):
             handler='reservation_handler.delete_reservation')
         table_reservations.grant_read_write_data(delete_reservation)
 
+        #events
+        get_events = _lambda.Function(self,'get_events',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='event_handler.get_events',
+            environment=env_)
+        table_events.grant_read_write_data(get_events)
+
+        get_event = _lambda.Function(self,'get_event',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='event_handler.get_event',
+            environment=env_)
+        table_events.grant_read_write_data(get_event)
+
+        # env_event = env_.copy()
+        # env_event.update({"LAMBDA_ADD_RESERVATION_ARN": add_reservation.function_arn})
+
+        add_event = _lambda.Function(self,'add_event',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='event_handler.add_event',
+            environment=env_)
+        add_event.add_environment("LAMBDA_ADD_RESERVATION_ARN", add_reservation.function_arn)
+        table_events.grant_read_write_data(add_event)
+        table_reservations.grant_read_write_data(add_event)
+        table_players.grant_read_data(add_event)
+        table_sport_facilities.grant_read_data(add_event)
+        add_reservation.grant_invoke(add_event)
+        
+        delete_event = _lambda.Function(self,'delete_event',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            handler='event_handler.delete_event')
+        table_events.grant_read_write_data(delete_event)
+
         ###API###
         api = apigateway.RestApi(self, "SportsEventManagerApi")
 
@@ -289,6 +327,19 @@ class SportsEventManagerStack(core.Stack):
         reservation.add_method("PUT", apigateway.LambdaIntegration(update_reservation),
             authorization_type=apigateway.AuthorizationType.NONE)
         reservation.add_method("DELETE", apigateway.LambdaIntegration(delete_reservation),
+            authorization_type=apigateway.AuthorizationType.NONE)
+
+        # /events
+        events = api.root.add_resource("events")
+        events.add_method("GET", apigateway.LambdaIntegration(get_events), 
+            authorization_type=apigateway.AuthorizationType.NONE)
+        events.add_method("POST", apigateway.LambdaIntegration(add_event),
+            authorization_type=apigateway.AuthorizationType.NONE)
+        
+        event = events.add_resource("{event_id}")
+        event.add_method("GET", apigateway.LambdaIntegration(get_event),
+            authorization_type=apigateway.AuthorizationType.NONE)
+        event.add_method("DELETE", apigateway.LambdaIntegration(delete_event),
             authorization_type=apigateway.AuthorizationType.NONE)
 
        
