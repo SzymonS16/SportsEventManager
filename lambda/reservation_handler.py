@@ -40,12 +40,13 @@ def get_reservation(event, context):
 
 
 def add_reservation(event, context):
-    #TODO#
-    #body handler from add_event function
+    evt_dict = json.dumps(event)
+    if 'body' in evt_dict:
+        body = json.loads(event['body'])   
+    else:
+        body = event
 
     id = str(uuid.uuid4())
-    print(json.dumps(event))
-    body = json.loads(event['body'])
 
     player = table_players.get_item(Key={"id": body['player_id']})
 
@@ -71,8 +72,7 @@ def add_reservation(event, context):
         'headers': {
             'Content-Type': 'text/plain'
         },
-        'body':
-        'Item created: {}'.format(json.dumps(item, indent=2, sort_keys=True))
+        'body' : json.dumps(item)
     }
 
 

@@ -30,7 +30,9 @@ def get_event(event, context):
     method = event['httpMethod']
     if (method == 'GET'):
         id = event['pathParameters']['event_id']
-        item = table.get_item(Key={"id": id})
+        item = table.get_item(
+            Key={"id": id}
+        )
         item = item['Item']
         return {
             "body": json.dumps(item, indent=2, sort_keys=True),
@@ -46,7 +48,7 @@ def add_event(event, context):
         "player_id": body['player_id'],
         "facility_id": body['facility_id'],
         "start_date": body['start_date'],
-        "end_date": body['end_date'],
+        "end_date": body['end_date']
     }
 
     reservation = client_lambda.invoke(
@@ -55,10 +57,10 @@ def add_event(event, context):
         LogType='Tail',
         Payload=json.dumps(reservation_body),
     )
-    print(reservation)
-    print('Separator')
+   
     reservation_body = json.load(reservation['Payload'])
-    print(reservation_body)
+    if 'body' in reservation_body:
+        reservation_body = json.loads(reservation_body['body'])
 
     item = {
         'id': id,
