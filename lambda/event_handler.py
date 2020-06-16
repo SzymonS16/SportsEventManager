@@ -6,7 +6,7 @@ import base64
 
 dynamodb = boto3.resource('dynamodb')
 client_lambda = boto3.client('lambda')
-#s3client = boto3.client("s3")
+s3client = boto3.client("s3")
 
 #enviroment variables
 table = dynamodb.Table(os.getenv("TABLE_EVENTS"))
