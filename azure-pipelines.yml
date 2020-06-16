@@ -16,6 +16,16 @@ strategy:
       python.version: '3.7'
 
 steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    sudo npm install -g aws-cdk
+    npm install
+    npm run build
+    cdk synth
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '$(python.version)'
@@ -26,10 +36,6 @@ steps:
     pip install -r requirements.txt
   displayName: 'Install dependencies'
 
-- script: |
-    pip install pytest pytest-azurepipelines
-    pytest
-  displayName: 'pytest'
 
 - task: AWSShellScript@1
   inputs:
