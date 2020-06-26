@@ -7,6 +7,7 @@ import base64
 dynamodb = boto3.resource('dynamodb')
 client_lambda = boto3.client('lambda')
 s3client = boto3.client("s3")
+client = boto3.client('sns')
 
 #enviroment variables
 table = dynamodb.Table(os.getenv("TABLE_EVENTS"))
@@ -71,6 +72,47 @@ def add_event(event, context):
     }
 
     table.put_item(Item=item)
+
+    # sns handler
+    #TODO
+    topic = client.create_topic(
+        Name = body['name'],
+        Attributes={
+            'string': 'string'
+        },
+        Tags=[
+            {
+                'Key': 'string',
+                'Value': 'string'
+            },
+        ]
+    )
+
+    if topic['TopicArn']:
+        public_topic = client.publish(
+            TopicArn = topic['TopicArn'],
+            Message='Test message',
+            Subject=body['name'],
+            MessageStructure='string',
+            MessageAttributes={
+                'string': {
+                    'DataType': 'string',
+                    'StringValue': 'string',
+                    'BinaryValue': b'bytes'
+                }
+            }
+        )
+
+        response = client.subscribe(
+            TopicArn=topic['TopicArn'],
+            Protocol='email',
+            Endpoint='szymon1965@o2.pl',
+            Attributes={
+                'string': 'string'
+            },
+            ReturnSubscriptionArn=True|False
+        )
+
     return {
         'statusCode':
         200,
