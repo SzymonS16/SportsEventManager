@@ -245,8 +245,9 @@ class SportsEventManagerStack(core.Stack):
             environment=env_)
         table_events.grant_read_write_data(get_event)
 
-        # env_event = env_.copy()
-        # env_event.update({"LAMBDA_ADD_RESERVATION_ARN": add_reservation.function_arn})
+        sns_event_notify_topic = sns.Topic(self, "Topic",
+            display_name="Event notification"
+        )
 
         add_event = _lambda.Function(self,'add_event',
             runtime=_lambda.Runtime.PYTHON_3_7,
@@ -254,12 +255,23 @@ class SportsEventManagerStack(core.Stack):
             handler='event_handler.add_event',
             environment=env_)
         add_event.add_environment("LAMBDA_ADD_RESERVATION_ARN", add_reservation.function_arn)
+        add_event.add_environment("TOPIC_ARN",sns_event_notify_topic.topic_arn)
         table_events.grant_read_write_data(add_event)
         table_reservations.grant_read_write_data(add_event)
         table_players.grant_read_data(add_event)
         table_sport_facilities.grant_read_data(add_event)
         add_reservation.grant_invoke(add_event)
-        
+        add_event.add_to_role_policy(iam.PolicyStatement(
+            resources=['*'],
+            actions=[
+                "sns:CreateTopic",
+                "sns:Publish",
+                "sns:Subscribe",
+                "sns:SetTopicAttributes",
+                "sns:GetTopicAttributes"
+            ]      
+        ))
+       
         delete_event = _lambda.Function(self,'delete_event',
             runtime=_lambda.Runtime.PYTHON_3_7,
             code=_lambda.Code.asset('lambda'),

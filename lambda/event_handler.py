@@ -74,44 +74,26 @@ def add_event(event, context):
     table.put_item(Item=item)
 
     # sns handler
-    #TODO
-    topic = client.create_topic(
-        Name = body['name'],
-        Attributes={
-            'string': 'string'
-        },
-        Tags=[
-            {
-                'Key': 'string',
-                'Value': 'string'
-            },
-        ]
+    message = 'Event notification: {}, Start: {}, Location: {}, Participants: {}, {}'.format(
+        item['name'],
+        item['reservation']['start_date'],
+        item['reservation']['sport_facility']['name'],
+        item['teams'][0],
+        item['teams'][1],
+    ) 
+
+    public_topic = client.publish(
+        TopicArn = os.getenv("TOPIC_ARN"),
+        Message=message,
+        Subject=str(body['name'])
     )
 
-    if topic['TopicArn']:
-        public_topic = client.publish(
-            TopicArn = topic['TopicArn'],
-            Message='Test message',
-            Subject=body['name'],
-            MessageStructure='string',
-            MessageAttributes={
-                'string': {
-                    'DataType': 'string',
-                    'StringValue': 'string',
-                    'BinaryValue': b'bytes'
-                }
-            }
-        )
-
-        response = client.subscribe(
-            TopicArn=topic['TopicArn'],
-            Protocol='email',
-            Endpoint='szymon1965@o2.pl',
-            Attributes={
-                'string': 'string'
-            },
-            ReturnSubscriptionArn=True|False
-        )
+    response = client.subscribe(
+        TopicArn=os.getenv("TOPIC_ARN"),
+        Protocol='email',
+        Endpoint='szymon1965@o2.pl',
+        ReturnSubscriptionArn=False
+    )
 
     return {
         'statusCode':
