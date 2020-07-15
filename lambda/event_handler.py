@@ -118,3 +118,5 @@ def delete_event(event, context):
             },
             'body': 'Item deleted: {}'.format(str(id))
         }
+
+#test

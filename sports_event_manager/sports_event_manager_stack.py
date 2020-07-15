@@ -354,4 +354,3 @@ class SportsEventManagerStack(core.Stack):
         event.add_method("DELETE", apigateway.LambdaIntegration(delete_event),
             authorization_type=apigateway.AuthorizationType.NONE)
             
-       
